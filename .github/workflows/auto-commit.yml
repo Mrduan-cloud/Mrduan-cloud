@@ -1,0 +1,55 @@
+name: Auto Commit (Daily Green)
+
+on:
+  schedule:
+    # 每天 UTC 00:30（北京时间 08:30）自动执行
+    - cron: '30 0 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  auto-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update daily log
+        run: |
+          BEIJING_TIME=$(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S')
+          DAY_OF_WEEK=$(TZ='Asia/Shanghai' date '+%A')
+
+          QUOTES=(
+            "Stay hungry, stay foolish."
+            "Code is poetry."
+            "Ship it!"
+            "Keep learning, keep growing."
+            "One commit at a time."
+            "Build something great today."
+            "Think big, start small."
+            "Progress, not perfection."
+            "今天也要加油鸭 🦆"
+            "代码改变世界 🌍"
+            "持续进步中 📈"
+            "又是元气满满的一天 ☀️"
+          )
+          RANDOM_QUOTE=${QUOTES[$((RANDOM % ${#QUOTES[@]}))]}
+
+          mkdir -p logs
+          echo "📅 ${BEIJING_TIME} (${DAY_OF_WEEK}) | ${RANDOM_QUOTE}" >> logs/daily.log
+
+          if [ $(wc -l < logs/daily.log) -gt 365 ]; then
+            tail -365 logs/daily.log > logs/daily.log.tmp
+            mv logs/daily.log.tmp logs/daily.log
+          fi
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && echo "No changes" && exit 0
+          BEIJING_DATE=$(TZ='Asia/Shanghai' date '+%Y-%m-%d')
+          git commit -m "📝 Daily check-in: ${BEIJING_DATE}"
+          git push
